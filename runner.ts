@@ -40,7 +40,8 @@ export function run(
   const [cmd, args] = buildArgs(conf, mode);
   args.push(...cmds.flatMap((c) => ["-c", c]));
   if (verbose) {
-    args.unshift("--cmd", "redir >> /dev/stdout");
+    const out = Deno.build.os === "windows" ? "> CON" : ">> /dev/stdout";
+    args.unshift("--cmd", `redir ${out}`);
   }
   const command = new Deno.Command(cmd, {
     args,
@@ -74,7 +75,7 @@ function buildArgs(conf: Config, mode: RunMode): [string, string[]] {
     case "nvim":
       return [
         conf.nvimExecutable,
-        ["--clean", "--embed", "--headless", "-n"],
+        ["--clean", "--headless", "-n"],
       ];
     default:
       unreachable(mode);
