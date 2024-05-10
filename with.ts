@@ -1,4 +1,7 @@
-import { deadline } from "https://deno.land/std@0.210.0/async/mod.ts";
+import {
+  deadline,
+  DeadlineError,
+} from "https://deno.land/std@0.210.0/async/mod.ts";
 import { assert, is } from "https://deno.land/x/unknownutil@v3.11.0/mod.ts";
 import {
   Client,
@@ -86,14 +89,15 @@ export async function withDenops(
     hostname: "127.0.0.1",
     port: 0, // Automatically select a free port
   });
-  const proc = run(mode, commands, {
-    verbose: options.verbose,
-    env: {
-      "DENOPS_TEST_ADDRESS": JSON.stringify(listener.addr),
-    },
-  });
-  const conn = await deadline(listener.accept(), CONNECT_TIMEOUT);
-  try {
+  const getConnection = async () => {
+    try {
+      return await deadline(listener.accept(), CONNECT_TIMEOUT);
+    } catch (err: unknown) {
+      throw err instanceof DeadlineError ? new Error("Connect timeout") : err;
+    }
+  };
+  const perform = async () => {
+    const conn = await getConnection();
     const session = new Session(conn.readable, conn.writable, {
       errorSerializer,
     });
@@ -127,6 +131,18 @@ export async function withDenops(
     await new Promise((resolve) => setTimeout(resolve, 0));
     await main(denops);
     await session.shutdown();
+  };
+  const proc = run(mode, commands, {
+    verbose: options.verbose,
+    env: {
+      "DENOPS_TEST_ADDRESS": JSON.stringify(listener.addr),
+    },
+  });
+  try {
+    await Promise.race([
+      perform(),
+      proc.output(),
+    ]);
   } finally {
     listener.close();
     proc.kill();
