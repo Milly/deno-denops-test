@@ -94,7 +94,7 @@ jobs:
         env:
           DENOPS_TEST_NVIM: ${{ steps.nvim.outputs.executable }}
       - run: |
-          "${DENOPS_TEST_VIM_EXECUTABLE}" -u NONE -i NONE -n -N -X -e -s -V1 -c visual -c "echomsg 'foo'" -c "call timer_start(1000, {-> execute('cquit')})" -c "sleep 1" -c "echomsg 'bar'"
+          "${DENOPS_TEST_VIM_EXECUTABLE}" -u NONE -i NONE -n -N -X -e -s -V1 -c visual -c "echomsg 'foo'" -c "call timer_start(3000, {-> execute('quit!')})" -c "sleep 1" -c "echomsg 'bar'"
         env:
           DENOPS_TEST_VIM_EXECUTABLE: ${{ steps.vim.outputs.executable }}
       - name: Test
@@ -103,4 +103,5 @@ jobs:
           DENOPS_TEST_DENOPS_PATH: "../denops.vim"
           DENOPS_TEST_VIM_EXECUTABLE: ${{ steps.vim.outputs.executable }}
           DENOPS_TEST_NVIM_EXECUTABLE: ${{ steps.nvim.outputs.executable }}
+          DENOPS_TEST_VERBOSE: 1
         working-directory: ./repo

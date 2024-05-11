@@ -103,8 +103,15 @@ export function run(
       return { status, output };
     },
     async [Symbol.asyncDispose]() {
-      this.close();
-      await proc.status;
+      // this.close();
+      // await proc.status;
+      try {
+        proc.kill(); 
+      } catch {
+        // do nothing
+      }
+      const out = await this.waitClosed();
+      console.log('dispose:', out);
     },
   };
 }
