@@ -48,7 +48,7 @@ export function run(
     env: options.env,
     stdin: "piped",
     stdout: verbose ? "inherit" : "null",
-    stderr: verbose ? "inherit" : "null",
+    stderr: verbose ? "inherit" : "piped",
   });
   return command.spawn();
 }
