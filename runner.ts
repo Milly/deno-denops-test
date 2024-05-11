@@ -1,3 +1,4 @@
+import { mergeReadableStreams } from "https://deno.land/std@0.210.0/streams/merge_readable_streams.ts";
 import { is } from "https://deno.land/x/unknownutil@v3.11.0/mod.ts";
 import { unreachable } from "https://deno.land/x/errorutil@v0.1.1/mod.ts";
 import { Config, getConfig } from "./conf.ts";
@@ -19,6 +20,25 @@ export interface RunOptions
 }
 
 /**
+ * Represents results of the runner.
+ */
+export interface RunResult extends AsyncDisposable {
+  /**
+   * Aborts the process.
+   */
+  close(): void;
+  /**
+   * Wait the process closed and returns status.
+   */
+  waitClosed(): Promise<WaitClosedResult>;
+}
+
+type WaitClosedResult = {
+  status: Deno.CommandStatus;
+  output?: string;
+};
+
+/**
  * Checks if the provided mode is a valid `RunMode`.
  */
 export const isRunMode = is.LiteralOneOf(["vim", "nvim"] as const);
@@ -34,23 +54,59 @@ export function run(
   mode: RunMode,
   cmds: string[],
   options: RunOptions = {},
-): Deno.ChildProcess {
+): RunResult {
   const conf = getConfig();
-  const verbose = options.verbose ?? conf.verbose;
+  const { verbose = conf.verbose } = options;
   const [cmd, args] = buildArgs(conf, mode);
   args.push(...cmds.flatMap((c) => ["-c", c]));
-  if (verbose) {
-    const out = Deno.build.os === "windows" ? "> CON" : ">> /dev/stdout";
-    args.unshift("--cmd", `redir ${out}`);
-  }
   const command = new Deno.Command(cmd, {
     args,
     env: options.env,
-    stdin: "piped",
-    stdout: verbose ? "inherit" : "null",
-    stderr: verbose ? "inherit" : "piped",
+    stdin: "null",
+    stdout: "piped",
+    stderr: "piped",
   });
-  return command.spawn();
+  const proc = command.spawn();
+  const aborter = new AbortController();
+  let outputStream = mergeReadableStreams(
+    proc.stdout.pipeThrough(new TextDecoderStream(), {
+      signal: aborter.signal,
+    }),
+    proc.stderr.pipeThrough(new TextDecoderStream(), {
+      signal: aborter.signal,
+    }),
+  );
+  if (verbose) {
+    const [consoleStream] = [, outputStream] = outputStream.tee();
+    consoleStream.pipeTo(
+      new WritableStream({
+        write(data) {
+          console.error(data);
+        },
+      }),
+    ).catch(() => {});
+  }
+  return {
+    close() {
+      aborter.abort("close");
+      try {
+        proc.kill();
+      } catch {
+        // Already terminated, do nothing.
+      }
+    },
+    async waitClosed() {
+      const status = await proc.status;
+      const output = await Array.fromAsync(outputStream)
+        .then((list) => list.join(""))
+        .catch(() => undefined);
+      return { status, output };
+    },
+    async [Symbol.asyncDispose]() {
+      this.close();
+      await proc.status;
+    },
+  };
 }
 
 function buildArgs(conf: Config, mode: RunMode): [string, string[]] {
@@ -68,6 +124,7 @@ function buildArgs(conf: Config, mode: RunMode): [string, string[]] {
           "-X", // Disable xterm
           "-e", // Start Vim in Ex mode
           "-s", // Silent or batch mode ("-e" is required before)
+          "-V1", // Verbose level 1 (Echo messages to stderr)
           "-c",
           "visual", // Go to Normal mode
         ],
@@ -75,7 +132,12 @@ function buildArgs(conf: Config, mode: RunMode): [string, string[]] {
     case "nvim":
       return [
         conf.nvimExecutable,
-        ["--clean", "--headless", "-n"],
+        [
+          "--clean",
+          "--headless",
+          "-n", // Disable swap file
+          "-V1", // Verbose level 1 (Echo messages to stderr)
+        ],
       ];
     default:
       unreachable(mode);
