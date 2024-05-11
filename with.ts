@@ -73,7 +73,7 @@ export async function withDenops(
     verbose = conf.verbose,
     prelude = [],
     postlude = [],
-    connectTimeout = CONNECT_TIMEOUT,
+    connectTimeout = conf.connectTimeout ?? CONNECT_TIMEOUT,
   } = options;
   const plugin = new URL("./plugin.ts", import.meta.url);
   const commands = [
