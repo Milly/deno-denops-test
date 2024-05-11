@@ -47,6 +47,7 @@ jobs:
           - macos-latest
           - ubuntu-latest
         version:
+          - "1.32.x"
           - "1.x"
         host_version:
           - vim: "v9.0.1499"
@@ -107,7 +108,7 @@ jobs:
         env:
           DENOPS_TEST_NVIM: ${{ steps.nvim.outputs.executable }}
       - name: Test
-        run: echo OK1
+        run: deno test -A with_test.ts
         env:
           DENOPS_TEST_DENOPS_PATH: "../denops.vim"
           DENOPS_TEST_VIM_EXECUTABLE: ${{ steps.path.outputs.vim-executable }}
