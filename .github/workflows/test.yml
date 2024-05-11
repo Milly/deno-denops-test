@@ -93,6 +93,10 @@ jobs:
           ${DENOPS_TEST_NVIM} --version
         env:
           DENOPS_TEST_NVIM: ${{ steps.nvim.outputs.executable }}
+      - run: |
+          "${DENOPS_TEST_VIM_EXECUTABLE}" -u NONE -i NONE -n -N -X -e -s -V1 -c visual -c "echomsg 'foo'" -c "call timer_start(1000, {-> execute('cquit')})" -c "sleep 1" -c "echomsg 'bar'"
+        env:
+          DENOPS_TEST_VIM_EXECUTABLE: ${{ steps.vim.outputs.executable }}
       - name: Test
         run: deno test -A with_test.ts
         env:
