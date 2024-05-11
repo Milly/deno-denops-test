@@ -50,11 +50,6 @@ jobs:
         host_version:
           - vim: "v9.0.1499"
             nvim: "v0.8.0"
-        include:
-          - runner: ubuntu-latest
-            cache: true
-          - runner: macos-latest
-            cache: true
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 15
     steps:
@@ -74,18 +69,11 @@ jobs:
           echo "vim-executable=$HOME/vim-$VIM_VER/bin/vim" >> $GITHUB_OUTPUT
         env:
           VIM_VER: ${{ matrix.host_version.vim }}
-      - uses: actions/cache@v4
-        id: cache
-        if: matrix.cache
-        with:
-          key: vim-${{ runner.os }}-${{ matrix.host_version.vim }}
-          path: ${{ steps.path.outputs.vim-home }}
       - uses: denoland/setup-deno@v1
         with:
           deno-version: "${{ matrix.version }}"
       - uses: rhysd/action-setup-vim@v1
         id: vim
-        if: steps.cache.outputs.cache-hit != 'true'
         with:
           version: "${{ matrix.host_version.vim }}"
       - name: Check Vim
@@ -93,7 +81,7 @@ jobs:
           echo ${DENOPS_TEST_VIM}
           ${DENOPS_TEST_VIM} --version
         env:
-          DENOPS_TEST_VIM: ${{ steps.path.outputs.vim-executable }}
+          DENOPS_TEST_VIM: ${{ steps.vim.outputs.executable }}
       - uses: rhysd/action-setup-vim@v1
         id: nvim
         with:
@@ -109,6 +97,6 @@ jobs:
         run: deno test -A with_test.ts
         env:
           DENOPS_TEST_DENOPS_PATH: "../denops.vim"
-          DENOPS_TEST_VIM_EXECUTABLE: ${{ steps.path.outputs.vim-executable }}
+          DENOPS_TEST_VIM_EXECUTABLE: ${{ steps.vim.outputs.executable }}
           DENOPS_TEST_NVIM_EXECUTABLE: ${{ steps.nvim.outputs.executable }}
         working-directory: ./repo
