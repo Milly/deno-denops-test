@@ -85,19 +85,20 @@ export async function withDenops(
     "call denops#server#start()",
     ...(options.postlude ?? []),
   ];
-  const listener = Deno.listen({
+  using listener = Deno.listen({
     hostname: "127.0.0.1",
     port: 0, // Automatically select a free port
   });
   const getConnection = async () => {
     try {
       return await deadline(listener.accept(), CONNECT_TIMEOUT);
-    } catch (err: unknown) {
-      throw err instanceof DeadlineError ? new Error("Connect timeout") : err;
+    } catch (cause: unknown) {
+      throw new Error("[denops-test] Connection failed.", { cause });
+    } finally {
+      listener.close();
     }
   };
-  const perform = async () => {
-    const conn = await getConnection();
+  const createSession = (conn: Deno.Conn) => {
     const session = new Session(conn.readable, conn.writable, {
       errorSerializer,
     });
@@ -109,7 +110,9 @@ export async function withDenops(
         `[denops-test] Unexpected error occurred for message ${message}: ${err}`,
       );
     };
-    session.start();
+    return session;
+  };
+  const createDenops = async (session: Session) => {
     const client = new Client(session, {
       errorDeserializer,
     });
@@ -126,11 +129,25 @@ export async function withDenops(
         return denops.dispatcher[name](...args);
       },
     };
-    // Workaround for an unexpected "leaking async ops"
-    // https://github.com/denoland/deno/issues/15425#issuecomment-1368245954
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    await main(denops);
-    await session.shutdown();
+    return denops;
+  };
+  const perform = async () => {
+    const conn = await getConnection();
+    const session = createSession(conn);
+    session.start();
+    await Promise.race([
+      session.wait().catch((cause: unknown) => {
+        throw new Error(`[denops-test] Session closed.`, { cause });
+      }),
+      createDenops(session).then(async (denops) => {
+        // Workaround for an unexpected "leaking async ops"
+        // https://github.com/denoland/deno/issues/15425#issuecomment-1368245954
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        await main(denops);
+      }).finally(() => {
+        session.shutdown().catch(() => {});
+      }),
+    ]);
   };
   const proc = run(mode, commands, {
     verbose: options.verbose,
@@ -141,10 +158,20 @@ export async function withDenops(
   try {
     await Promise.race([
       perform(),
-      proc.output(),
+      Promise.all([proc.status, proc.output()]).then(([status, output]) => {
+        if (!status.success) {
+          const suffix = output.stderr.length > 0
+            ? `:\n----- stderr -----\n${
+              new TextDecoder().decode(output.stderr).trimEnd()
+            }\n----- stderr -----`
+            : ".";
+          throw new Error(
+            `Process aborted (${mode}, code=${status.code})${suffix}`,
+          );
+        }
+      }),
     ]);
   } finally {
-    listener.close();
     proc.kill();
     await Promise.all([
       proc.stdin?.close(),
