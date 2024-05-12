@@ -90,13 +90,15 @@ export async function withDenops(
     "call denops#server#start()",
     ...postlude,
   ];
+  const aborter = new AbortController();
+  const { signal } = aborter;
   using listener = Deno.listen({
     hostname: "127.0.0.1",
     port: 0, // Automatically select a free port
   });
   const getConn = async () => {
     try {
-      return await deadline(listener.accept(), connectTimeout);
+      return await deadline(listener.accept(), connectTimeout, { signal });
     } catch (cause: unknown) {
       throw new Error("[denops-test] Connection failed.", { cause });
     } finally {
@@ -137,7 +139,7 @@ export async function withDenops(
     return denops;
   };
   const perform = async () => {
-    const conn = await getConn();
+    using conn = await getConn();
     const session = createSession(conn);
     session.start();
     try {
@@ -168,6 +170,7 @@ export async function withDenops(
   await Promise.race([
     perform(),
     runner.waitClosed().then(({ status, output }) => {
+      aborter.abort("closed");
       if (!status.success) {
         const suffix = output?.length
           ? `:\n------- output -------\n${output}\n----- output end -----`
