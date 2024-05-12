@@ -11,6 +11,11 @@ on:
       - "deno.jsonc"
       - ".github/workflows/test.yml"
   workflow_dispatch:
+    inputs:
+      verbose:
+        type: boolean
+        required: false
+        description: Enable verbose output
 
 defaults:
   run:
@@ -43,9 +48,12 @@ jobs:
     strategy:
       matrix:
         runner:
+          - windows-latest
+          - macos-latest
           - ubuntu-latest
         version:
           - "1.38.x"
+          - "1.x"
         host_version:
           - vim: "v9.0.2189"
             nvim: "v0.9.4"
@@ -60,13 +68,6 @@ jobs:
         with:
           repository: "vim-denops/denops.vim"
           path: "./denops.vim"
-      - name: Check Path
-        id: path
-        run: |
-          echo "vim-home=$HOME/vim-$VIM_VER" >> $GITHUB_OUTPUT
-          echo "vim-executable=$HOME/vim-$VIM_VER/bin/vim" >> $GITHUB_OUTPUT
-        env:
-          VIM_VER: ${{ matrix.host_version.vim }}
       - uses: denoland/setup-deno@v1
         with:
           deno-version: "${{ matrix.version }}"
@@ -91,29 +92,18 @@ jobs:
           ${DENOPS_TEST_NVIM} --version
         env:
           DENOPS_TEST_NVIM: ${{ steps.nvim.outputs.executable }}
-<<<<<<< HEAD
-      - run: |
-          "${DENOPS_TEST_VIM_EXECUTABLE}" -u NONE -i NONE -n -N -X -e -s -V1 -c visual -c "echomsg 'foo'" -c "call timer_start(3000, {-> execute('quit!')})" -c "sleep 1" -c "echomsg 'bar'"
-        env:
-          DENOPS_TEST_VIM_EXECUTABLE: ${{ steps.vim.outputs.executable }}
-      - name: Test
-        run: deno test -A with_test.ts
-=======
       - name: Perform pre-cache
         run: |
           deno cache ../denops.vim/denops/@denops-private/mod.ts ./mod.ts
         working-directory: ./repo
       - name: Test
         run: deno task test:coverage
->>>>>>> main
         env:
           DENOPS_TEST_DENOPS_PATH: "../denops.vim"
           DENOPS_TEST_VIM_EXECUTABLE: ${{ steps.vim.outputs.executable }}
           DENOPS_TEST_NVIM_EXECUTABLE: ${{ steps.nvim.outputs.executable }}
-          DENOPS_TEST_VERBOSE: 1
+          DENOPS_TEST_VERBOSE: ${{ github.event.inputs.verbose }}
         working-directory: ./repo
-<<<<<<< HEAD
-=======
         timeout-minutes: 15
       - run: |
           deno task coverage --lcov > coverage.lcov
@@ -123,4 +113,3 @@ jobs:
           os: ${{ runner.os }}
           files: ./coverage.lcov
           token: ${{ secrets.CODECOV_TOKEN }}
->>>>>>> main
