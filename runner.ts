@@ -63,29 +63,29 @@ export function run(
     args,
     env: options.env,
     stdin: "null",
-    stdout: "piped",
-    stderr: "piped",
+    stdout: "inherit",
+    stderr: "inherit",
   });
   const proc = command.spawn();
   const aborter = new AbortController();
-  let outputStream = mergeReadableStreams(
-    proc.stdout.pipeThrough(new TextDecoderStream(), {
-      signal: aborter.signal,
-    }),
-    proc.stderr.pipeThrough(new TextDecoderStream(), {
-      signal: aborter.signal,
-    }),
-  );
-  if (verbose) {
-    const [consoleStream] = [, outputStream] = outputStream.tee();
-    consoleStream.pipeTo(
-      new WritableStream({
-        write(data) {
-          console.error(data);
-        },
-      }),
-    ).catch(() => {});
-  }
+  // let outputStream = mergeReadableStreams(
+  //   proc.stdout.pipeThrough(new TextDecoderStream(), {
+  //     signal: aborter.signal,
+  //   }),
+  //   proc.stderr.pipeThrough(new TextDecoderStream(), {
+  //     signal: aborter.signal,
+  //   }),
+  // );
+  // if (verbose) {
+  //   const [consoleStream] = [, outputStream] = outputStream.tee();
+  //   consoleStream.pipeTo(
+  //     new WritableStream({
+  //       write(data) {
+  //         console.error(data);
+  //       },
+  //     }),
+  //   ).catch(() => {});
+  // }
   return {
     close() {
       aborter.abort("close");
@@ -97,20 +97,22 @@ export function run(
     },
     async waitClosed() {
       const status = await proc.status;
-      const output = await Array.fromAsync(outputStream)
-        .then((list) => list.join(""))
-        .catch(() => undefined);
+      // const output = await Array.fromAsync(outputStream)
+      //   .then((list) => list.join(""))
+      //   .catch(() => undefined);
+      const output = undefined;
       return { status, output };
     },
     async [Symbol.asyncDispose]() {
       // this.close();
       // await proc.status;
       try {
-        proc.kill(); 
+        proc.kill();
       } catch {
         // do nothing
       }
       const out = await this.waitClosed();
+      aborter.abort("close");
       console.log('dispose:', out);
     },
   };
