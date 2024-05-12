@@ -75,13 +75,6 @@ export async function withDenops(
     postlude = [],
     connectTimeout = conf.connectTimeout ?? CONNECT_TIMEOUT,
   } = options;
-  console.log({
-    pluginName,
-    verbose,
-    prelude,
-    postlude,
-    connectTimeout,
-  });
   const plugin = new URL("./plugin.ts", import.meta.url);
   const commands = [
     ...prelude,
@@ -144,32 +137,26 @@ export async function withDenops(
     return denops;
   };
   const perform = async () => {
-    console.log(1);
     const conn = await getConn();
-    console.log(2);
     const session = createSession(conn);
-    console.log(3);
     session.start();
-    console.log(4);
     try {
       const denops = await createDenops(session);
-    console.log(5);
 
       // Workaround for an unexpected "leaking async ops"
       // https://github.com/denoland/deno/issues/15425#issuecomment-1368245954
+      // Maybe fixed in v1.41.0
+      // https://github.com/denoland/deno/pull/22413
+      // TODO: Remove this workaround when Deno minimum version changes to v1.41.0 or higher
       await new Promise((resolve) => setTimeout(resolve, 0));
 
-    console.log(6);
       await main(denops);
-    console.log(7);
     } finally {
-    console.log(8);
       try {
         await session.shutdown();
       } catch {
         // Already shutdown, do nothing.
       }
-    console.log(9);
     }
   };
   await using runner = run(mode, commands, {
@@ -183,7 +170,7 @@ export async function withDenops(
     runner.waitClosed().then(({ status, output }) => {
       if (!status.success) {
         const suffix = output?.length
-          ? `:\n----- stderr -----\n${output}\n----- stderr end -----`
+          ? `:\n------- output -------\n${output}\n----- output end -----`
           : ".";
         throw new Error(
           `[denops-test] Process aborted (${mode}, code=${status.code})${suffix}`,
