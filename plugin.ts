@@ -7,7 +7,7 @@ import {
 import {
   Client,
   Session,
-} from "https://deno.land/x/messagepack_rpc@v2.0.3/mod.ts";
+} from "https://deno.land/x/messagepack_rpc@v2.1.1/mod.ts";
 import { errorDeserializer, errorSerializer } from "./error.ts";
 
 export async function main(denops: Denops): Promise<void> {

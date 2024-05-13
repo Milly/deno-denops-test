@@ -4,7 +4,7 @@ import type {
   Dispatcher,
   Meta,
 } from "https://deno.land/x/denops_core@v6.0.6/mod.ts";
-import { Client } from "https://deno.land/x/messagepack_rpc@v2.0.3/mod.ts";
+import { Client } from "https://deno.land/x/messagepack_rpc@v2.1.1/mod.ts";
 
 export class DenopsImpl implements Denops {
   readonly name: string;
