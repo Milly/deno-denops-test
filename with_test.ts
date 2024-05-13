@@ -7,7 +7,7 @@ import {
   assertSpyCalls,
   spy,
 } from "https://deno.land/std@0.224.0/testing/mock.ts";
-import type { Denops } from "https://deno.land/x/denops_core@v6.0.2/mod.ts";
+import type { Denops } from "https://deno.land/x/denops_core@v6.0.6/mod.ts";
 import { withDenops } from "./with.ts";
 
 Deno.test("test(mode:vim) start vim to test denops features", async () => {
