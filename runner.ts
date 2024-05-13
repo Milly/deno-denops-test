@@ -1,4 +1,4 @@
-import { mergeReadableStreams } from "https://deno.land/std@0.210.0/streams/merge_readable_streams.ts";
+import { mergeReadableStreams } from "https://deno.land/std@0.224.0/streams/merge_readable_streams.ts";
 import { is } from "https://deno.land/x/unknownutil@v3.11.0/mod.ts";
 import { unreachable } from "https://deno.land/x/errorutil@v0.1.1/mod.ts";
 import { Config, getConfig } from "./conf.ts";

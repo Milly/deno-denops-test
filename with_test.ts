@@ -2,11 +2,11 @@ import {
   assert,
   assertFalse,
   assertRejects,
-} from "https://deno.land/std@0.210.0/assert/mod.ts";
+} from "https://deno.land/std@0.224.0/assert/mod.ts";
 import {
   assertSpyCalls,
   spy,
-} from "https://deno.land/std@0.210.0/testing/mock.ts";
+} from "https://deno.land/std@0.224.0/testing/mock.ts";
 import type { Denops } from "https://deno.land/x/denops_core@v6.0.2/mod.ts";
 import { withDenops } from "./with.ts";
 

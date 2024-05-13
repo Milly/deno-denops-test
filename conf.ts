@@ -1,4 +1,4 @@
-import { resolve } from "https://deno.land/std@0.210.0/path/mod.ts";
+import { resolve } from "https://deno.land/std@0.224.0/path/mod.ts";
 
 let conf: Config | undefined;
 
