@@ -1,13 +1,13 @@
-import { deadline } from "https://deno.land/std@0.210.0/async/mod.ts";
-import { assert, is } from "https://deno.land/x/unknownutil@v3.11.0/mod.ts";
+import { deadline } from "https://deno.land/std@0.224.0/async/mod.ts";
+import { assert, is } from "https://deno.land/x/unknownutil@v3.18.0/mod.ts";
 import {
   Client,
   Session,
-} from "https://deno.land/x/messagepack_rpc@v2.0.3/mod.ts";
+} from "https://deno.land/x/messagepack_rpc@v2.1.1/mod.ts";
 import type {
   Denops,
   Meta,
-} from "https://deno.land/x/denops_core@v6.0.2/mod.ts";
+} from "https://deno.land/x/denops_core@v6.0.6/mod.ts";
 import { getConfig } from "./conf.ts";
 import { run, RunMode } from "./runner.ts";
 import { DenopsImpl } from "./denops.ts";
